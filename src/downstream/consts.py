@@ -1,0 +1,22 @@
+# task constants
+
+UNK_LABEL = 'UNK'    # in NER datasets
+UNK_TOKEN = '<UNK>'  # for baselines
+PAD_TOKEN = '<PAD>'  # for baseline BERT and for GPT2
+
+MARCO_NO_ANSWER = 'No Answer Present.'
+MARCO_NO_WF_ANSWER = '[]'
+NULL_ANSWERS = [MARCO_NO_ANSWER, MARCO_NO_WF_ANSWER]
+
+# model defaults
+
+STOPPING_PATIENCE = 10
+
+BASE_EMB_SIZE = 300
+BASE_LSTM_LAYERS = 1
+BASE_LSTM_HIDDEN_SIZE = 128
+
+TASK_LSTM_LAYERS = 2
+TASK_MLP_LAYERS = 2
+TASK_LSTM_HIDDEN_SIZE = 128
+
