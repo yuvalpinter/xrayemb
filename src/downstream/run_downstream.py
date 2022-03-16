@@ -10,7 +10,7 @@ import random
 from typing import List
 
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 import torch
 from torch import nn
 from torch.optim import AdamW
@@ -493,7 +493,7 @@ def main():
             max_met = max(epoch_metrics)
             if epoch_metrics[-1] == max_met:
                 prev_best = best_model
-                best_model = os.path.join(tmp_dir, f'down_model_{ep + 1:04}.pt')
+                best_model = os.path.join(args.out_dir, f'down_model_{ep + 1:04}.pt')
                 if is_ner(args):
                     best_dv_report = dv_report
                 if is_cls(args):
@@ -522,19 +522,19 @@ def main():
 
     # saving config and best model
     cfg = json.dumps(mod.config_params(), indent=2, sort_keys=True) + "\n"
-    cfg_path = os.path.join(tmp_dir, 'config.json')
+    cfg_path = os.path.join(args.out_dir, 'config.json')
     with open(cfg_path, "w", encoding="utf-8") as writer:
         writer.write(cfg)
-    tf.io.gfile.copy(cfg_path, os.path.join(args.out_dir, 'config.json'))
-    tf.io.gfile.copy(best_model, os.path.join(args.out_dir, 'model.pt'))
+    #tf.io.gfile.copy(cfg_path, os.path.join(args.out_dir, 'config.json'))
+    #tf.io.gfile.copy(best_model, os.path.join(args.out_dir, 'model.pt'))
 
     if is_qa(args) or is_gen(args) or is_cls(args):
-        out_tmpfile = os.path.join(tmp_dir, 'dev_preds.tsv')
+        #out_tmpfile = os.path.join(tmp_dir, 'dev_preds.tsv')
         out_filename = os.path.join(args.out_dir, 'dev_preds.tsv')
         logger.info(f'Writing best dev predictions to {out_filename}.')
-        with open(out_tmpfile, 'w') as outf:
+        with open(out_filename, 'w') as outf:
             outf.write(best_dv_prd)
-        tf.io.gfile.copy(out_tmpfile, out_filename)
+        #tf.io.gfile.copy(out_tmpfile, out_filename)
 
     # test
     if not ts_set:  # MARCO-QA is not annotated
@@ -607,10 +607,10 @@ def main():
             mrr = np.average(rrs)
             logger.info(f'mean reciprocal rank: {mrr:.4f}')
 
-        out_tmpfile = os.path.join(tmp_dir, 'test_preds.tsv')
+        #out_tmpfile = os.path.join(tmp_dir, 'test_preds.tsv')
         out_filename = os.path.join(args.out_dir, 'test_preds.tsv')
         logger.info(f'Writing predictions to {out_filename}.')
-        with open(out_tmpfile, 'w') as outf:
+        with open(out_filename, 'w') as outf:
             if is_qa(args):
                 inst_delim = '\n'
             elif is_ner(args):
@@ -618,20 +618,20 @@ def main():
             else:
                 inst_delim = ''
             outf.write(inst_delim.join(pred_strs))
-        tf.io.gfile.copy(out_tmpfile, out_filename)
+        #tf.io.gfile.copy(out_tmpfile, out_filename)
 
         if is_ner(args):
-            rep_tmpfile = os.path.join(tmp_dir, 'report.txt')
+            #rep_tmpfile = os.path.join(tmp_dir, 'report.txt')
             rep_filename = os.path.join(args.out_dir, 'report.txt')
             logger.info(f'Writing metrics report to {rep_filename}.')
-            with open(rep_tmpfile, 'w') as outf:
+            with open(rep_filename, 'w') as outf:
                 if best_dv_report is not None:
                     outf.write("Dev:\n\n")
                     outf.write("\n".join(best_dv_report))
                     outf.write("\n\n")
                 outf.write("Test:\n\n")
                 outf.write("\n".join(report))
-            tf.io.gfile.copy(rep_tmpfile, rep_filename)
+            #tf.io.gfile.copy(rep_tmpfile, rep_filename)
 
     tb_writer.close()
 

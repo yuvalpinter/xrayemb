@@ -22,7 +22,7 @@ from src.tdt.consts import PAD_CHAR, MASK_TOKEN_KEY
 from src.tdt.embedding import TdtEmbedder
 from src.tdt.generation import TdtGenerator
 from src.tdt.io_utils import load_model_files, load_tdt_periphery
-from src.tdt.nlp_utils import NlpTokenizer
+#from src.tdt.nlp_utils import NlpTokenizer
 from src.tdt.utils import add_vector_token, add_pad_token
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,8 @@ def load_wrapper(model_type, base_dir, tdt_dir, vec_type, checkpoint=None, devic
     :param hashtml: will the text encountered have unescaped HTML
     :param vec_type: type of vectorizer (lstm, conv, transformer)
     """
-    pret = NlpTokenizer(hashtml=hashtml)
+    #pret = NlpTokenizer(hashtml=hashtml)
+	pret = None
     btok, bmod, tmp_dir = load_model_files(model_type, base_dir)
 
     # add tokens (can be done directly when json files are updated in directory or loading from post-pre-trained)
@@ -122,7 +123,7 @@ class TdtWrapper(nn.Module):
 
     def __init__(self,
                  base_model: PreTrainedModel,
-                 pretokenizer,
+                 pretokenizer=None,
                  base_tokenizer: PreTrainedTokenizer,
                  tdt_embedder: TdtEmbedder,
                  tdt_generator: TdtGenerator,
@@ -132,7 +133,7 @@ class TdtWrapper(nn.Module):
         self.mtype = args.model_type
 
         self.bmodel = base_model
-        self.pretok = pretokenizer
+        #self.pretok = pretokenizer
         self.btok = base_tokenizer
         self.tdtemb = tdt_embedder
         self.tdtgen = tdt_generator
