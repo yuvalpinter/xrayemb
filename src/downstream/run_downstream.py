@@ -95,8 +95,8 @@ def main():
                         help="number of MLP layers in task model")
     parser.add_argument('--batch-size', type=int, default=16, help="batch size for task training")
     parser.add_argument('--margin-loss', action='store_true', help='train with a margin loss set to 1.0')
-    parser.add_argument('--dataset', choices=['emoji', 'conll', 'nemer', 'ner', 'cqa',
-                                              'marcoqa', 'marcosamp', 'marcogen'])
+    parser.add_argument('--dataset') #choices=['emoji', 'conll', 'nemer', 'ner', 'cqa',
+                                     #        'marcoqa', 'marcosamp', 'marcogen'])
     parser.add_argument('--data-sample', type=float, default=1.0, help="reduce for debugging")
     parser.add_argument('--stopping-patience', type=int, default=STOPPING_PATIENCE,
                         help='number of epochs before early stopping is invoked')
@@ -107,7 +107,7 @@ def main():
 
     is_ft = '' if args.finetune else 'no '
     if args.tdt_model_dir is not None:
-        tdtmod, tmp_dir, chars = load_tdt_for_inference(args)
+        tdtmod, _, chars = load_tdt_for_inference(args)
         emb_size = tdtmod.out_size()
         btok = tdtmod.btok
         base_lm = None
@@ -118,7 +118,7 @@ def main():
         assert args.vectorizer_type is None
         assert args.alpha_tdt == 0.0, f"alpha-tdt needs to be set to zero, not {args.alpha_tdt}"
         tdtmod, chars = None, None
-        base_lm, btok, tmp_dir = load_lm_for_inference(args)
+        base_lm, btok, _ = load_lm_for_inference(args)
         emb_size = base_lm.get_output_embeddings().in_features
         logger.info(f"loaded only {args.model_type} base model, {is_ft}fine-tuning, device = {base_lm.device}")
         main_model = base_lm
@@ -302,7 +302,7 @@ def main():
 
             if is_ner(args):
                 targets = ner_helper.align_targets(targets, inps, joins)
-                validate_ner_seq(btok, excess_toks, inps, joins, sents, targets)
+                validate_ner_seq(btok, excess_toks, inps, targets, joins, sents)
                 preds = mod(lm_out_class).permute(0, 2, 1)
                 batch_loss = xent_loss(preds, targets)
             elif is_cls(args) or is_qa(args):
@@ -419,7 +419,7 @@ def main():
                             dv_prd_strs.append('\t'.join([q, strg, sprd]))
                     elif is_ner(args):
                         targets = ner_helper.align_targets(targets, inps, joins)
-                        validate_ner_seq(btok, excess_toks, inps, joins, sents, targets)
+                        validate_ner_seq(btok, excess_toks, inps, targets, joins, sents)
                         preds = mod(lm_out_class)
                         batch_loss = xent_loss(preds.permute(0, 2, 1), targets)
                         t_l, p_l, _ = ner_helper.ner_batch_from_preds(sents, preds, targets, lab_list, joins)
@@ -565,7 +565,7 @@ def main():
             assert lm_out_class.shape[:2] == inps.shape[:2]
             if is_ner(args):
                 targets = ner_helper.align_targets(targets, inps, joins)
-                validate_ner_seq(btok, excess_toks, inps, joins, sents, targets)
+                validate_ner_seq(btok, excess_toks, inps, targets, joins, sents)
                 preds = mod(lm_out_class)
                 batch_loss = xent_loss(preds.permute(0, 2, 1), targets)
 
@@ -687,7 +687,7 @@ def tensify_batch(dataset, lab_dict, tokzr: PreTrainedTokenizer, args, char_tabl
                            [(d.query, d.true_passage)] + [(d.query, f) for f in d.false_passages])
             len_sorted_passages = list(sorted(passages, key=lambda x: -len(tokzr.tokenize(x[1][1]))))
             assert len(len_sorted_passages) <= batch_size, f'{len(len_sorted_passages)} > {batch_size}'
-            idc_tns = encode_seqs(tokzr, len_sorted_passages, 1, args.device)
+            idc_tns = encode_seqs(tokzr, len_sorted_passages, 1, False, args.device)
             batches.append((idc_tns, torch.tensor([x[0] for x in len_sorted_passages],
                                                   dtype=torch.float32, device=args.device).view(1, -1),
                             ([' [SEP] '.join(x[1]) for x in len_sorted_passages], d)))
@@ -723,7 +723,7 @@ def tensify_batch(dataset, lab_dict, tokzr: PreTrainedTokenizer, args, char_tabl
         if not to_batch:
             continue
 
-        idc_tns = encode_seqs(tokzr, to_batch, 0, args.device)
+        idc_tns = encode_seqs(tokzr, to_batch, 0, is_ner(args), args.device)
         idc_tns = idc_tns.to(args.device)
 
         if is_ner(args):
@@ -805,7 +805,7 @@ def tensify_chars(seq, device: torch.device, char_table: dict = None, tokzr: Pre
     raise AttributeError('Must supply either char_table or tok')
 
 
-def encode_seqs(tokzr, passages: List[str], txt_idx, device: torch.device):
+def encode_seqs(tokzr, passages: List[str], txt_idx, is_presplit, device: torch.device):
     """
     :param passages: tuples containing strings to be encoded as one of their entries
     :param tokzr: tokenizer
@@ -814,7 +814,9 @@ def encode_seqs(tokzr, passages: List[str], txt_idx, device: torch.device):
     :return: token index tensor ready for torch module operation
     """
     idc_tns = tokzr.batch_encode_plus([s[txt_idx] for s in passages],
-                                      pad_to_max_length=True,
+                                      padding='max_length', #pad_to_max_length=True,
+                                      is_split_into_words=is_presplit,
+                                      max_length=tokzr.model_max_length,
                                       return_tensors='pt')['input_ids']
     if type(tokzr) not in [BertTokenizer, RobertaTokenizer]:
         if isinstance(tokzr, GPT2Tokenizer):
@@ -823,9 +825,9 @@ def encode_seqs(tokzr, passages: List[str], txt_idx, device: torch.device):
         else:
             raise NotImplementedError("Proper text encoding with BOS and EOS for non-[Ro]BERT[a]/GPT2 models"
                                       " is still not implemented")
-    if idc_tns.shape[1] > tokzr.max_len:
+    if idc_tns.shape[1] > tokzr.model_max_length:   # tokzr.max_len
         logger.info(idc_tns.shape)
-        idc_tns = idc_tns[:, :tokzr.max_len]
+        idc_tns = idc_tns[:, :tokzr.model_max_length]   # tokzr.max_len
     return idc_tns.to(device)
 
 

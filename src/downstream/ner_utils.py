@@ -42,12 +42,12 @@ def excess_tokens(model_type):
         return 1
     raise NotImplementedError('Define # of excess tokens for model type')
 
-
+	
 def validate_ner_seq(btok, excess_toks, inps, targets, joins, sents):
     for i, (semb, targ, sent) in enumerate(zip(inps, targets, sents)):
         nonpads = len([e for e in semb if e != btok.pad_token_id])
         targs = len([t for t in targ if t != IGNORE_INDEX])
-        assert targs == nonpads - excess_toks, f'\n{i}:\n{semb};\n{targ};\n{joins};\n{sent}'
+        assert targs == nonpads - excess_toks, f'\n{i}, {targs} != {nonpads} - {excess_toks}:\n{sent};\n{semb};\n{targ};\n{joins}'
 
 
 def fix_tags(tag_list: List[str]) -> List[str]:

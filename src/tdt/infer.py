@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.NOTSET)
 def load_tdt_for_inference(args):
     tdtmod, tmp_dir, all_chars = load_wrapper(args.model_type, args.base_model_dir, args.tdt_model_dir,
                                               args.vectorizer_type, args.checkpoint, device=args.device,
-                                              for_lm=args.dataset is not None, hashtml=args.hashtml,
+                                              for_lm=args.dataset is None, hashtml=args.hashtml,
                                               infer_policy=args.infer_policy, pool_policy=args.pool_policy,
                                               stoch_rate=args.stoch_rate)
     tdtmod.eval()

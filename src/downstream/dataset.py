@@ -13,12 +13,12 @@ from collections import Counter
 from typing import NamedTuple
 
 import pandas as pd
-import tensorflow as tf
+#import tensorflow as tf
 from tqdm import tqdm
 
 from src.downstream.consts import *
-from src.downstream.io_interface import get_nemer_dataloc, get_ner_dataloc, \
-    get_marcosamp_loc, get_conll_loc, get_marco_loc, get_emoji_loc
+#from src.downstream.io_interface import get_nemer_dataloc, get_ner_dataloc, \
+#    get_marcosamp_loc, get_conll_loc, get_marco_loc, get_emoji_loc
 
 logger = logging.getLogger(__name__)
 
@@ -221,46 +221,47 @@ def load_emoji(filename, sample=1.0, lowercase: bool = False) -> EmojiDataset:
 
 def get_dataset(args):
     ds = {}
-    temp_dir = "/tmp/{}".format(uuid.uuid4())
-    os.makedirs(temp_dir)
+    #temp_dir = "/tmp/{}".format(uuid.uuid4())
+    #os.makedirs(temp_dir)
     for prt in ['train', 'dev', 'test']:
-        if args.dataset == 'nemer':
-            f = get_nemer_dataloc(args.dataloc, prt)
-            tmp_f = os.path.join(temp_dir, prt)
-            tf.io.gfile.copy(f, tmp_f)
-            ds[prt] = load_ner(tmp_f, lowercase=args.lowercase)
-        elif args.dataset == 'ner':
-            f = get_ner_dataloc(args.dataloc, prt)
-            tmp_f = os.path.join(temp_dir, prt)
-            tf.io.gfile.copy(f, tmp_f)
-            ds[prt] = load_ner(tmp_f, lowercase=args.lowercase)
+        if 'wnut16' in args.dataset:
+            #f = get_ner_dataloc(args.dataloc, prt)
+            #tmp_f = os.path.join(temp_dir, prt)
+            #tf.io.gfile.copy(f, tmp_f)
+            ds[prt] = load_ner(f'{args.dataset}/{prt}', lowercase=args.lowercase)
+        elif 'wnut' in args.dataset:
+            #f = get_nemer_dataloc(args.dataloc, prt)
+            #tmp_f = os.path.join(temp_dir, prt)
+            #tf.io.gfile.copy(f, tmp_f)
+            ds[prt] = load_ner(f'{args.dataset}/{prt}', lowercase=args.lowercase)
         elif args.dataset == 'conll':
-            f = get_conll_loc(args.dataloc, prt)
-            tmp_f = os.path.join(temp_dir, prt)
-            tf.io.gfile.copy(f, tmp_f)
-            ds[prt] = load_ner(tmp_f, lowercase=args.lowercase, delim=' ', labcol=3)
-        elif args.dataset == 'marcoqa':
-            f = get_marco_loc(args.dataloc, prt)
-            tmp_f = os.path.join(temp_dir, prt)
-            tf.io.gfile.copy(f, tmp_f)
+            #f = get_conll_loc(args.dataloc, prt)
+            #tmp_f = os.path.join(temp_dir, prt)
+            #tf.io.gfile.copy(f, tmp_f)
+            ds[prt] = load_ner(f'{args.dataset}/{prt}', lowercase=args.lowercase, delim=' ', labcol=3)
+        elif 'marcoqa' in args.dataset:
+            #f = get_marco_loc(args.dataloc, prt)
+            #tmp_f = os.path.join(temp_dir, prt)
+            #tf.io.gfile.copy(f, tmp_f)
             data_sample = args.data_sample if prt == 'train' else args.data_sample * 10
-            ds[prt] = load_marco(tmp_f, sample=data_sample,
+            ds[prt] = load_marco(f'{args.dataset}/{prt}', sample=data_sample,
                                  is_test=prt == 'test',
                                  lowercase=args.lowercase)
+        # TODO fix this case's loading
         elif args.dataset in ['marcosamp', 'marcogen']:
-            f = get_marcosamp_loc(args.dataloc, prt)
-            tmp_f = os.path.join(temp_dir, prt)
-            tf.io.gfile.copy(f, tmp_f)
+            #f = get_marcosamp_loc(args.dataloc, prt)
+            #tmp_f = os.path.join(temp_dir, prt)
+            #tf.io.gfile.copy(f, tmp_f)
             data_sample = args.data_sample if prt == 'train' else args.data_sample * 10
-            ds[prt] = load_marco(tmp_f, sample=data_sample,
+            ds[prt] = load_marco(f'{args.dataset}/{prt}', sample=data_sample,
                                  is_test=prt == 'test',
                                  lowercase=args.lowercase)
-        elif args.dataset == 'emoji':
-            f = get_emoji_loc(args.dataloc, prt)
-            tmp_f = os.path.join(temp_dir, prt)
-            tf.io.gfile.copy(f, tmp_f)
+        elif 'emoji' in args.dataset:
+            #f = get_emoji_loc(args.dataloc, prt)
+            #tmp_f = os.path.join(temp_dir, prt)
+            #tf.io.gfile.copy(f, tmp_f)
             data_sample = args.data_sample if prt == 'train' else args.data_sample * 10
-            ds[prt] = load_emoji(tmp_f, sample=data_sample, lowercase=args.lowercase)
+            ds[prt] = load_emoji(f'{args.dataset}/{prt}', sample=data_sample, lowercase=args.lowercase)
         else:
             raise ValueError(f'dataset {args.dataset} not supported')
     return ds
@@ -269,30 +270,30 @@ def get_dataset(args):
 # identification methods for branching in train/test
 
 def is_cls(args):
-    return args.dataset == 'emoji'
+    return args.dataset == 'emoji' or 'emoji' in args.dataset
 
 
 def is_qa(args):
-    return args.dataset in ['marcoqa', 'marcosamp']
+    return args.dataset in ['marcoqa', 'marcosamp'] or ('marco' in args.dataset and 'gen' not in args.dataset)
 
 
 def is_gen(args):
-    return args.dataset == 'marcogen'
+    return args.dataset == 'marcogen' or 'marcogen' in args.dataset
 
 
 def is_ner(args):
-    return args.dataset in ['ner', 'nemer', 'conll']
+    return args.dataset in ['ner', 'nemer', 'conll'] or 'wnut' in args.dataset or 'conll' in args.dataset
 
 
 # nytwit is a special case
 
 def get_nytwit_dataset(data_loc):
-    temp_dir = "/tmp/{}".format(uuid.uuid4())
-    os.makedirs(temp_dir)
-    tmp_f = os.path.join(temp_dir, 'nytwit')
-    tf.io.gfile.copy(data_loc, tmp_f)
+    #temp_dir = "/tmp/{}".format(uuid.uuid4())
+    #os.makedirs(temp_dir)
+    #tmp_f = os.path.join(temp_dir, 'nytwit')
+    #tf.io.gfile.copy(data_loc, tmp_f)
 
-    with open(tmp_f) as in_f:
+    with open(data_loc) as in_f:
         sents_df = pd.read_csv(in_f, sep='\t', quoting=3)
 
     return sents_df

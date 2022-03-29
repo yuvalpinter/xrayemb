@@ -17,6 +17,7 @@
 #SBATCH --cpus-per-task=4				### number of CPU cores, allocating more than 10G requires IT team's permission
 
 ##SBATCH --tmp=10G
+SLURM_JOB_NODELIST=cs-3090-02
 
 ### Print some data to output file ###
 echo `date`
@@ -24,7 +25,7 @@ echo -e "\nSLURM_JOBID:\t\t" $SLURM_JOBID
 echo -e "SLURM_JOB_NODELIST:\t" $SLURM_JOB_NODELIST "\n\n"
 
 ### Start your code below ####
-DATA_DIR=/home/pintery/git/xrayemb/datasets/wnut
+DATA_DIR=/home/pintery/git/xrayemb/datasets/wnut16
 MODEL_DIR=/home/pintery/git/xrayemb/models/roberta
 TDT_MODEL_DIR=/home/pintery/git/xrayemb/models/202103192237
 OUTPUT_DIR=/home/pintery/git/xrayemb/output/wnut
@@ -32,14 +33,14 @@ OUTPUT_DIR=/home/pintery/git/xrayemb/output/wnut
 module load anaconda				### load anaconda module (must be present when working with conda environments)
 source activate yuval				### activate a conda environment, replace my_env with your conda environment
 
-python src/downstream/run_downstream.py --n-gpu 1\
+python -m src.downstream.run_downstream --n-gpu 1\
 										--model-type roberta\
-										--base-model-dir MODEL_DIR\
-										--out-dir OUTPUT_DIR\
-										--tdt-model-dir TDT_MODEL_DIR\
+										--base-model-dir ${MODEL_DIR}\
+										--out-dir ${OUTPUT_DIR}\
+										--tdt-model-dir ${TDT_MODEL_DIR}\
 										--vectorizer-type conv\
 										--infer-policy stoch\
-										--stoch-rate 0.0\
+										--stoch-rate 0.0001\
 										--pool-policy max\
 										--finetune\
 										--ft-lr 2e-5\
@@ -49,7 +50,7 @@ python src/downstream/run_downstream.py --n-gpu 1\
 										--task-lr 5e-4\
 										--task-warmup 0.1\
 										--batch-size 2\
-										--dataset ner\
+										--dataset ${DATA_DIR}\
 										--data-sample 1.0\
 										--stopping-patience 4\
 										--epochs 20

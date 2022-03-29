@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='tokdetok_release',
+    name='xrayemb',
     version='0.0.1',
-    url='https://bbgithub.dev.bloomberg.com/ypinter/tokdetok_release',
-    description='TokDetok implementation in distributed pytorch',
+    url='https://github.com/yuvalpinter/xrayemb',
+    description='XRayEmb implementation in distributed pytorch',
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -12,7 +12,6 @@ setup(
         "numpy==1.16.4",
         "torch==1.6.0",
         "sentencepiece==0.1.91",
-        "tensorflow",
         "tensorboard==1.15",
         "scikit-learn",
         "pandas",

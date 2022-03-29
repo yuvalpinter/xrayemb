@@ -45,8 +45,8 @@ def load_wrapper(model_type, base_dir, tdt_dir, vec_type, checkpoint=None, devic
     :param vec_type: type of vectorizer (lstm, conv, transformer)
     """
     #pret = NlpTokenizer(hashtml=hashtml)
-	pret = None
-    btok, bmod, tmp_dir = load_model_files(model_type, base_dir)
+    pret = None
+    btok, bmod, _ = load_model_files(model_type, base_dir)
 
     # add tokens (can be done directly when json files are updated in directory or loading from post-pre-trained)
     if model_type == 'gpt2':
@@ -58,19 +58,19 @@ def load_wrapper(model_type, base_dir, tdt_dir, vec_type, checkpoint=None, devic
     bmod.to(device)
 
     if tdt_dir is None:
-        return bmod, btok, tmp_dir
+        return bmod, btok, None
 
-    all_chars, args, _ = load_tdt_periphery(tdt_dir, checkpoint, tmp_dir)
+    all_chars, args, _ = load_tdt_periphery(tdt_dir, checkpoint, None)
     args.device = device
     args.vectorizer_type = vec_type
 
     if vec_type is None:  # second-base model
-        sd = torch.load(f'{tmp_dir}/model.pt', map_location=torch.device(device))
+        sd = torch.load(f'{base_dir}/model.pt', map_location=torch.device(device))
         if checkpoint is not None:
             sd = {k[len('module.'):]: v for k, v in sd.items()}
         sd = {k[len('bmodel.'):]: v for k, v in sd.items() if k.startswith('bmodel.')}
         bmod.load_state_dict(sd, strict=False)
-        return bmod, btok, tmp_dir
+        return bmod, btok, None
 
     if infer_policy == 'all-multi':
         infer_filter = AllMultiToksFilter(btok)
@@ -93,6 +93,7 @@ def load_wrapper(model_type, base_dir, tdt_dir, vec_type, checkpoint=None, devic
         raise ValueError(f'Multi-token pooling policy not supported: {pool_policy}')
     strict_dict_loading = False
     if for_lm:
+        logger.info("Loading embedder and generator 'for LM'")
         tdte = TdtEmbedder(btok, bmod.get_input_embeddings(), all_chars,
                            args.char_emb_size, StochasticFilter(btok, 0.2), infer_filter,
                            pooler, args).to(device)
@@ -101,18 +102,19 @@ def load_wrapper(model_type, base_dir, tdt_dir, vec_type, checkpoint=None, devic
                             args).to(device)
         strict_dict_loading = True
     else:  # this is downstream, so inference only and no generation
+        logger.info("Loading embedder without generation")
         tdte = TdtEmbedder(btok, bmod.get_input_embeddings(), all_chars,
                            args.char_emb_size, FilterRules(), infer_filter,
                            None, args).to(device)
         tdtg = None
     tdtmod = TdtWrapper(bmod, pret, btok, tdte, tdtg, args).to(device)
 
-    sd = torch.load(f'{tmp_dir}/model.pt', map_location=torch.device(device))
+    sd = torch.load(f'{tdt_dir}/model.pt', map_location=torch.device(device))
     if checkpoint is not None:
         sd = {k[len('module.'):]: v for k, v in sd.items()}
     tdtmod.load_state_dict(sd, strict=strict_dict_loading)
 
-    return tdtmod, tmp_dir, all_chars
+    return tdtmod, None, all_chars
 
 
 class TdtWrapper(nn.Module):
@@ -123,7 +125,7 @@ class TdtWrapper(nn.Module):
 
     def __init__(self,
                  base_model: PreTrainedModel,
-                 pretokenizer=None,
+                 pretokenizer,
                  base_tokenizer: PreTrainedTokenizer,
                  tdt_embedder: TdtEmbedder,
                  tdt_generator: TdtGenerator,
@@ -298,16 +300,16 @@ class TdtWrapper(nn.Module):
         if self.mtype in ['bert', 'cbert']:
             return self.bmodel(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                                position_ids=position_ids, head_mask=head_mask, inputs_embeds=inputs_embeds,
-                               masked_lm_labels=masked_lm_labels, encoder_hidden_states=past_hidden_values,
+                               labels=masked_lm_labels, encoder_hidden_states=past_hidden_values,
                                encoder_attention_mask=encoder_attention_mask, lm_labels=lm_labels)
         elif self.mtype == 'roberta':
             return self.bmodel(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                                position_ids=position_ids, head_mask=head_mask, inputs_embeds=inputs_embeds,
-                               masked_lm_labels=masked_lm_labels)
+                               labels=masked_lm_labels)
         elif self.mtype == 'gpt2':
             return self.bmodel(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                                position_ids=position_ids, head_mask=head_mask, inputs_embeds=inputs_embeds,
-                               labels=masked_lm_labels, past=past_hidden_values)  # "past_key_values" in > 4.0.0
+                               labels=masked_lm_labels, past_key_values=past_hidden_values)
         else:
             raise NotImplementedError('Only [Ro]BERT[a] and GPT2 supported for now.')
 

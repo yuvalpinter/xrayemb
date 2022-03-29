@@ -327,17 +327,19 @@ class TdtEmbedder(nn.Module):
 
             # the following two shouldn't happen anymore, since sentences end with sep_token
             if curr_lrn_inp:
-                cvec = self.char_vec(curr_lrn_inp)
-                lrn_insts.append((cvec, self.poolify_inds(curr_lrn_trgs)))
-                curr_lrn_inp = ''
-                curr_lrn_trgs = []
+                raise InputError("This shouldn't happen (curr_lrn_inp)")
+                #cvec = self.char_vec(curr_lrn_inp)
+                #lrn_insts.append((cvec, self.poolify_inds(curr_lrn_trgs)))
+                #curr_lrn_inp = ''
+                #curr_lrn_trgs = []
             if curr_inf_inp:
-                coord = (i, len(new_s))
-                inf_idcs.append(coord)
-                orig_words[coord] = curr_inf_inp
-                inf_vect_inputs.append(self.char_vec(curr_inf_inp))
-                new_s.append(self.rep_tok_for_masking)
-                curr_inf_inp = ''
+                raise InputError("This shouldn't happen (curr_inf_inp)")
+                #coord = (i, len(new_s))
+                #inf_idcs.append(coord)
+                #orig_words[coord] = curr_inf_inp
+                #inf_vect_inputs.append(self.char_vec(curr_inf_inp))
+                #new_s.append(self.rep_tok_for_masking)
+                #curr_inf_inp = ''
 
             new_inputs.append(new_s + [self.btok.pad_token_id] * (seqlen - len(new_s)))
         vec_pad_inp = torch.tensor(new_inputs, device=self.device)
