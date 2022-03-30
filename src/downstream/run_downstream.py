@@ -111,7 +111,7 @@ def main():
         emb_size = tdtmod.out_size()
         btok = tdtmod.btok
         base_lm = None
-        logger.info(f"loaded TDT model with underlying {args.model_type}, "
+        logger.info(f"loaded TDT model with underlying {args.model_type}, {type(btok)} tokenizer, "
                     f"{is_ft}fine-tuning, device = {tdtmod.device}")
         main_model = tdtmod
     else:
@@ -255,6 +255,9 @@ def main():
         ep_loss = 0.0
         tdt_tot_loss = 0.0
         random.shuffle(tr_set)
+        #logger.info(tr_set[0][0][0].cpu().numpy())
+        #logger.info(tr_set[0][1][0].cpu().numpy())
+        #logger.info(tr_set[0][2][0])
         for batch, targets, sents in tqdm(tr_set, mininterval=120, desc='Training batches'):
             mod.zero_grad()
             if args.finetune:
@@ -708,7 +711,8 @@ def tensify_batch(dataset, lab_dict, tokzr: PreTrainedTokenizer, args, char_tabl
             # NOTE THIS INCLUDES ROBERTA WHICH IS A SUBCLASS OF GPT2TOKENIZER
             n_dataset = []
             for s, l in dataset:
-                cobbled_s = tokzr.tokenize(' '.join(s))
+                #cobbled_s = tokzr.tokenize(' '.join(s))
+                cobbled_s = tokzr.encode(' '.join(s))
                 n_dataset.append((cobbled_s, l))
             dataset = n_dataset
         len_sorted_insts = sorted(dataset, key=lambda x: -len(x[0]))
@@ -740,7 +744,9 @@ def tensify_batch(dataset, lab_dict, tokzr: PreTrainedTokenizer, args, char_tabl
                 curr_tag = None
                 while t < len(tags):
                     while word_med(tokzr, idcj[k], idx_in_seq=k - 1):
+                        #logger.info(f"word-med in {k}={idcj[k]}")
                         if not annotate_all_toks:
+                            #logger.info(f"not annotate_all_toks!")
                             # not pretty, may be replaced with passing the filter in as an argument
                             if (args.infer_policy != 'no-easy-suffs'
                                     or not is_single_easy_suffix(tokzr, idcj, k)):
@@ -760,11 +766,16 @@ def tensify_batch(dataset, lab_dict, tokzr: PreTrainedTokenizer, args, char_tabl
                 if ((annotate_all_toks or args.infer_policy == 'no-easy-suffs')
                         and isinstance(tokzr, GPT2Tokenizer)):  # includes RoBERTa
                     while k < len(idcj) and word_med(tokzr, idcj[k], idx_in_seq=k - 1):
+                        #logger.info(f"word-med in {k}={idcj[k]}")
                         if not annotate_all_toks and not is_single_easy_suffix(tokzr, idcj, k):
                             break
                         tj[u] = curr_tag
                         u += 1
                         k += 1
+                #logger.info(f"u={u}")
+                #logger.info(tj.cpu().numpy())
+            #logger.info(targets[0].cpu().numpy())
+            #exit()
         elif is_cls(args):
             targets = torch.tensor([x[1] for x in to_batch], dtype=torch.int64, device=args.device)
         elif is_gen(args):
@@ -780,7 +791,8 @@ def tensify_batch(dataset, lab_dict, tokzr: PreTrainedTokenizer, args, char_tabl
             sents = to_batch
         else:
             if is_ner(args):
-                sents = [' '.join(w) for w, t in to_batch]
+                #sents = [' '.join(w) for w, t in to_batch]
+                sents = [' '.join(tokzr.convert_ids_to_tokens(w)) for w, t in to_batch]
             elif is_cls(args) or is_gen(args):
                 sents = [x[0] for x in to_batch]
             else:
@@ -807,17 +819,24 @@ def tensify_chars(seq, device: torch.device, char_table: dict = None, tokzr: Pre
 
 def encode_seqs(tokzr, passages: List[str], txt_idx, is_presplit, device: torch.device):
     """
-    :param passages: tuples containing strings to be encoded as one of their entries
+    :param passages: tuples containing strings to be encoded as one of their entries (or token id ints for NER)
     :param tokzr: tokenizer
     :param txt_idx: entry index for text
     :param device: torch device
     :return: token index tensor ready for torch module operation
     """
-    idc_tns = tokzr.batch_encode_plus([s[txt_idx] for s in passages],
-                                      padding='max_length', #pad_to_max_length=True,
-                                      is_split_into_words=is_presplit,
-                                      max_length=tokzr.model_max_length,
-                                      return_tensors='pt')['input_ids']
+    raw_batch = [s[txt_idx] for s in passages]
+    #logger.info(raw_batch)
+    #if is_presplit:
+    #    raw_batch = [' '.join(x) for x in raw_batch]
+    #logger.info(raw_batch)
+    if is_presplit:
+        idc_tns = tokzr.pad([{'input_ids': b} for b in raw_batch], padding='max_length', return_tensors='pt')['input_ids']
+    else:
+        idc_tns = tokzr.batch_encode_plus(raw_batch,
+                                        padding='max_length', #pad_to_max_length=True, is_split_into_words=is_presplit,
+                                        max_length=tokzr.model_max_length,
+                                        return_tensors='pt')['input_ids']
     if type(tokzr) not in [BertTokenizer, RobertaTokenizer]:
         if isinstance(tokzr, GPT2Tokenizer):
             bos_s = torch.full((idc_tns.shape[0], 1), tokzr.bos_token_id, dtype=torch.int64)

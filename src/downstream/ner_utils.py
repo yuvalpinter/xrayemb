@@ -42,7 +42,7 @@ def excess_tokens(model_type):
         return 1
     raise NotImplementedError('Define # of excess tokens for model type')
 
-	
+
 def validate_ner_seq(btok, excess_toks, inps, targets, joins, sents):
     for i, (semb, targ, sent) in enumerate(zip(inps, targets, sents)):
         nonpads = len([e for e in semb if e != btok.pad_token_id])
@@ -150,6 +150,9 @@ class NerHelper:
             prds = prds.cpu().tolist()
             trgs = trgs.cpu().tolist()
             words, tags = snt
+            ### NEW ROW ###
+            words = self.tokzr.convert_ids_to_tokens(words[1:-1])
+            ### /NEW ROW ###
             words, ignore_idcs = self.rejoin_words(words,
                                                    joins=None if jn is None else jn[1:])
             if self.has_cls():
