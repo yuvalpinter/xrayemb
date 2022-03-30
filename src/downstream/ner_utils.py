@@ -93,7 +93,8 @@ class NerHelper:
         self.tokzr = tokzr
 
     def has_cls(self):
-        return not isinstance(self.tokzr, GPT2Tokenizer)
+        return True
+        #return not isinstance(self.tokzr, GPT2Tokenizer)
 
     def rejoin_words(self, words: List[str], joins=None):
         """
