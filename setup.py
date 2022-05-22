@@ -10,7 +10,7 @@ setup(
     install_requires=[
         "transformers==2.8.0",
         "numpy==1.16.4",
-        "torch==1.6.0",
+        "torch==1.8.0",
         "sentencepiece==0.1.91",
         "tensorboard==1.15",
         "scikit-learn",

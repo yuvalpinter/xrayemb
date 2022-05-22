@@ -48,7 +48,7 @@ def main():
     parser.add_argument('--model-dir', help="location of base model files")
     parser.add_argument('--train-data-file', help="location of second pretraining corpus")
     parser.add_argument('--eval-data-file', help="location of evaluation corpus")
-    parser.add_argument('--vocab-file', help="location of vocanulary file (word \t frequency, ordered by frequency)")
+    parser.add_argument('--vocab-file', help="location of vocabulary file (word \t frequency, ordered by frequency)")
     parser.add_argument('--output-dir', help="location of resulting TDT model files")
     parser.add_argument('--logdir', help="location of tensorboard log")
 
