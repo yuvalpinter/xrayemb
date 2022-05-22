@@ -6,7 +6,7 @@
 ################################################################################################
 
 #SBATCH --partition rtx2080					### specify partition name where to run a job. main: all nodes; gtx1080: 1080 gpu card nodes; rtx2080: 2080 nodes; teslap100: p100 nodes; titanrtx: titan nodes
-#SBATCH --time 0-2:30:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
+#SBATCH --time 0-3:30:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
 #SBATCH --job-name xrayemb-roberta-wnut		### name of the job
 #SBATCH --output logs/xre-rob-wnut-%J.out	### output log for running job - %J for job number
 #SBATCH --gpus=1							### number of GPUs, allocating more than 1 requires IT team's permission
@@ -17,7 +17,7 @@
 #SBATCH --cpus-per-task=4				### number of CPU cores, allocating more than 10G requires IT team's permission
 
 ##SBATCH --tmp=10G
-SLURM_JOB_NODELIST=cs-3090-02
+###export SLURM_JOB_NODELIST=cs-3090-02
 
 ### Print some data to output file ###
 echo `date`
@@ -28,10 +28,11 @@ echo -e "SLURM_JOB_NODELIST:\t" $SLURM_JOB_NODELIST "\n\n"
 DATA_DIR=/home/pintery/git/xrayemb/datasets/wnut16
 MODEL_DIR=/home/pintery/git/xrayemb/models/roberta
 TDT_MODEL_DIR=/home/pintery/git/xrayemb/models/202103192237
-OUTPUT_DIR=/home/pintery/git/xrayemb/output/wnut
+OUTPUT_DIR=/home/pintery/git/xrayemb/output/wnut16
 
-module load anaconda				### load anaconda module (must be present when working with conda environments)
-source activate yuval				### activate a conda environment, replace my_env with your conda environment
+module load cuda/9.0				### load cuda
+module load anaconda				### load anaconda module
+source activate yuval				### activate a conda environment
 
 python -m src.downstream.run_downstream --n-gpu 1\
 										--model-type roberta\
@@ -39,8 +40,7 @@ python -m src.downstream.run_downstream --n-gpu 1\
 										--out-dir ${OUTPUT_DIR}\
 										--tdt-model-dir ${TDT_MODEL_DIR}\
 										--vectorizer-type conv\
-										--infer-policy stoch\
-										--stoch-rate 0.0001\
+										--infer-policy no-easy-suffs\
 										--pool-policy max\
 										--finetune\
 										--ft-lr 2e-5\
@@ -52,9 +52,10 @@ python -m src.downstream.run_downstream --n-gpu 1\
 										--batch-size 2\
 										--dataset ${DATA_DIR}\
 										--data-sample 1.0\
-										--stopping-patience 4\
-										--epochs 20
+										--stopping-patience 10\
+										--epochs 40
 										
+										# --stoch-rate 0.1\
 										# --second-base-model-dir \
 										# --evaluate-file\
 										# --checkpoint \
@@ -68,3 +69,4 @@ python -m src.downstream.run_downstream --n-gpu 1\
 										# --task-num-lstm-layers \
 										# --task-num-mlp-layers \
 										# --margin-loss\
+										#### ['all-multi', 'no-easy-suffs', 'all', 'stoch']

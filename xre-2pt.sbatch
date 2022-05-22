@@ -8,7 +8,7 @@
 #SBATCH --partition rtx2080				### specify partition name where to run a job. main: all nodes; gtx1080: 1080 gpu card nodes; rtx2080: 2080 nodes; teslap100: p100 nodes; titanrtx: titan nodes
 #SBATCH --time 0-2:30:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
 #SBATCH --job-name xrayemb-rob		### name of the job
-#SBATCH --output logs/xre-rob-%J.out	### output log for running job - %J for job number
+#SBATCH --output logs/xre-rob-2pt-%J.out	### output log for running job - %J for job number
 #SBATCH --gpus=1							    ### number of GPUs, allocating more than 1 requires IT team's permission
 
 #SBATCH --mail-user=uvp@cs.bgu.ac.il	        ### user's email for sending job status messages
@@ -33,8 +33,8 @@ LOG_DIR=/home/pintery/git/xrayemb/logs
 module load anaconda				### load anaconda module (must be present when working with conda environments)
 source activate yuval				### activate a conda environment, replace my_env with your conda environment
 
-python -m src.tdt.run_tdt --seed 496351\
-                    --n-gpu 1\
+python -m src.tdt.run_tokdetok --seed 496351\
+                                        --n-gpu 1\
 										--model-type roberta\
 										--model-dir ${MODEL_DIR}\
 										--train-data-file ${DATA_DIR}/tweets-en-2016.text.gz\
