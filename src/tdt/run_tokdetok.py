@@ -6,7 +6,6 @@ import argparse
 import logging
 import os
 
-import tensorflow as tf
 import torch
 
 from src.tdt.aux_classes import AllMultiToksFilter, StochasticFilter, \
@@ -21,7 +20,6 @@ from src.tdt.io_utils import load_model_files, write_dataset, load_cached_datase
 from src.tdt.tokdetok import BertTdtWrapper, T5TdtWrapper, GptTdtWrapper, RobertaTdtWrapper
 from src.tdt.training import train
 from src.tdt.utils import PreTokenizer, set_seed, add_vector_token, add_pad_token
-from src.utils_remote import RemoteIOArgsContext
 
 VEC_CHOICES = ['lstm', 'conv', 'transformer']
 
@@ -180,143 +178,142 @@ def main():
 
     set_seed(args)
 
-    with RemoteIOArgsContext(args, output_args=["output_dir"],
-                             enable_upload=(args.local_rank == -1 or torch.distributed.get_rank() == 0)):
+    # here lay the "with IOContext" line, indented until the very end
 
-        # Load pretrained model and tokenizer
-        pretok = PreTokenizer(hashtml=args.hashtml)
+    # Load pretrained model and tokenizer
+    pretok = PreTokenizer(hashtml=args.hashtml)
 
-        if args.local_rank not in [-1, 0]:
-            # Barrier to make sure only the first process in distributed training downloads model & vocab & data
-            torch.distributed.barrier()
+    if args.local_rank not in [-1, 0]:
+        # Barrier to make sure only the first process in distributed training downloads model & vocab & data
+        torch.distributed.barrier()
 
-        temp_mod_dir = "/tmp/{}".format('shared_files')
-        logger.info(f'temp directory: {temp_mod_dir}')
+    temp_mod_dir = "/tmp/{}".format('shared_files')
+    logger.info(f'temp directory: {temp_mod_dir}')
 
-        # load pre-trained models
-        btok, bmod, _ = load_model_files(args.model_type, args.model_dir, temp_mod_dir)
-        if args.model_type == 'gpt2':
-            add_pad_token(btok)
-        add_vector_token(btok)
-        bmod.resize_token_embeddings(len(btok))
-        bmod.to(args.device)
+    # load pre-trained models
+    btok, bmod, _ = load_model_files(args.model_type, args.model_dir, temp_mod_dir)
+    if args.model_type == 'gpt2':
+        add_pad_token(btok)
+    add_vector_token(btok)
+    bmod.resize_token_embeddings(len(btok))
+    bmod.to(args.device)
 
-        logger.info(f'{args.model_type} vocabulary size is {bmod.get_input_embeddings().num_embeddings}.')
-        args.word_emb_dim = bmod.get_input_embeddings().embedding_dim
-        logger.info(f'Embedding dimension is {args.word_emb_dim}.')
+    logger.info(f'{args.model_type} vocabulary size is {bmod.get_input_embeddings().num_embeddings}.')
+    args.word_emb_dim = bmod.get_input_embeddings().embedding_dim
+    logger.info(f'Embedding dimension is {args.word_emb_dim}.')
 
+    if args.local_rank == 0:
+        torch.distributed.barrier()
+
+    if args.local_rank not in [-1, 0]:
+        # Barrier to make sure only the first process in distributed training downloads model & vocab & data
+        torch.distributed.barrier()
+
+    # load dataset
+    if args.local_rank in [-1, 0]:
+        train_dataset = load_dataset(args.train_data_file, pretok, btok,
+                                     args.line_by_line, args.block_size, args.train_data_portion,
+                                     args.shuffle_data)
+        logger.info(f'Loaded {len(train_dataset)} training examples.')
+        write_dataset(train_dataset, os.path.join(temp_mod_dir, 'tr_ds.b'))
+
+        # End of data barrier
         if args.local_rank == 0:
             torch.distributed.barrier()
 
-        if args.local_rank not in [-1, 0]:
-            # Barrier to make sure only the first process in distributed training downloads model & vocab & data
-            torch.distributed.barrier()
+    if args.local_rank not in [-1, 0]:
+        train_dataset = load_cached_dataset(os.path.join(temp_mod_dir, 'tr_ds.b'))
 
-        # load dataset
-        if args.local_rank in [-1, 0]:
-            train_dataset = load_dataset(args.train_data_file, pretok, btok,
-                                         args.line_by_line, args.block_size, args.train_data_portion,
-                                         args.shuffle_data)
-            logger.info(f'Loaded {len(train_dataset)} training examples.')
-            write_dataset(train_dataset, os.path.join(temp_mod_dir, 'tr_ds.b'))
+    train_dataset.set_device(args.device)
 
-            # End of data barrier
-            if args.local_rank == 0:
-                torch.distributed.barrier()
+    char_vocab = train_dataset.chars
+    logger.info(f'Character vocab size:\t{len(char_vocab)}, saving to chars.txt')
+    os.makedirs(args.output_dir, exist_ok=True)
+    with open(os.path.join(args.output_dir, 'chars.txt'), mode='w') as outf:
+        outf.write(''.join(char_vocab[:-len(SPECIAL_CHAR_LIST)]))
 
-        if args.local_rank not in [-1, 0]:
-            train_dataset = load_cached_dataset(os.path.join(temp_mod_dir, 'tr_ds.b'))
+    # load vocab, init cycle trainers
+    if args.lrn_tdt:
+        vocab = load_vocab(args.vocab_file, args.vocab_size, lowercase=args.lowercase_vocab)
 
-        train_dataset.set_device(args.device)
+        tdcyc = TdCycleTrainer(args, vocab)
+        dtcyc = DtCycleTrainer(args)
+    else:
+        tdcyc = None
+        dtcyc = None
+        args.train_cycle_dep = False
 
-        char_vocab = train_dataset.chars
-        logger.info(f'Character vocab size:\t{len(char_vocab)}, saving to chars.txt')
-        os.makedirs(args.output_dir, exist_ok=True)
-        with tf.io.gfile.GFile(os.path.join(args.output_dir, 'chars.txt'), mode='w') as outf:
-            outf.write(''.join(char_vocab[:-len(SPECIAL_CHAR_LIST)]))
-
-        # load vocab, init cycle trainers
-        if args.lrn_tdt:
-            vocab = load_vocab(args.vocab_file, args.vocab_size, lowercase=args.lowercase_vocab)
-
-            tdcyc = TdCycleTrainer(args, vocab)
-            dtcyc = DtCycleTrainer(args)
+    if args.lrn_tdt:
+        # init auxiliary modules
+        lrn_rules = StochasticFilter(btok, args.lrn_prob)
+        if args.stochastic_inference:
+            inf_rules = StochasticFilter(btok, args.lrn_prob)
         else:
-            tdcyc = None
-            dtcyc = None
-            args.train_cycle_dep = False
-
-        if args.lrn_tdt:
-            # init auxiliary modules
-            lrn_rules = StochasticFilter(btok, args.lrn_prob)
-            if args.stochastic_inference:
-                inf_rules = StochasticFilter(btok, args.lrn_prob)
-            else:
-                inf_rules = AllMultiToksFilter(btok)
-            if args.pool_policy == 'max':
-                pooler = MaxPooler()
-            elif args.pool_policy == 'avg':
-                pooler = AvgPooler()
-            elif args.pool_policy == 'first':
-                pooler = FirstTokPooler()
-            else:
-                raise ValueError(f'Multi-token pooling policy not supported: {args.pool_policy}')
-
-            # init TDT modules
-            tdemb = TdtEmbedder(base_tok=btok, base_embs=bmod.get_input_embeddings().to(args.device),
-                                char_vocab=char_vocab, char_emb_size=args.char_emb_size,
-                                learn_filter_rules=lrn_rules, infer_filter_rules=inf_rules,
-                                multitoken_pooler=pooler, args=args)
-            gen = TdtGenerator(char_vocab=char_vocab,
-                               emb_size=args.char_emb_size,
-                               vec_size=bmod.get_output_embeddings().in_features,
-                               args=args)
+            inf_rules = AllMultiToksFilter(btok)
+        if args.pool_policy == 'max':
+            pooler = MaxPooler()
+        elif args.pool_policy == 'avg':
+            pooler = AvgPooler()
+        elif args.pool_policy == 'first':
+            pooler = FirstTokPooler()
         else:
-            tdemb = None
-            gen = None
-            args.alpha_vec = 0.0
-            args.alpha_gen = 0.0
-        if args.model_type in ['bert', 'cbert']:
-            tdt = BertTdtWrapper(base_model=bmod,
-                                 pretokenizer=pretok,
-                                 base_tokenizer=btok,
-                                 tdt_embedder=tdemb,
-                                 tdt_generator=gen,
-                                 args=args)
-        elif args.model_type == 'gpt2':
-            tdt = GptTdtWrapper(base_model=bmod,
+            raise ValueError(f'Multi-token pooling policy not supported: {args.pool_policy}')
+
+        # init TDT modules
+        tdemb = TdtEmbedder(base_tok=btok, base_embs=bmod.get_input_embeddings().to(args.device),
+                            char_vocab=char_vocab, char_emb_size=args.char_emb_size,
+                            learn_filter_rules=lrn_rules, infer_filter_rules=inf_rules,
+                            multitoken_pooler=pooler, args=args)
+        gen = TdtGenerator(char_vocab=char_vocab,
+                           emb_size=args.char_emb_size,
+                           vec_size=bmod.get_output_embeddings().in_features,
+                           args=args)
+    else:
+        tdemb = None
+        gen = None
+        args.alpha_vec = 0.0
+        args.alpha_gen = 0.0
+    if args.model_type in ['bert', 'cbert']:
+        tdt = BertTdtWrapper(base_model=bmod,
+                             pretokenizer=pretok,
+                             base_tokenizer=btok,
+                             tdt_embedder=tdemb,
+                             tdt_generator=gen,
+                             args=args)
+    elif args.model_type == 'gpt2':
+        tdt = GptTdtWrapper(base_model=bmod,
+                            pretokenizer=pretok,
+                            base_tokenizer=btok,
+                            tdt_embedder=tdemb,
+                            tdt_generator=gen,
+                            args=args)
+    elif args.model_type == 't5':
+        tdt = T5TdtWrapper(base_model=bmod,
+                           pretokenizer=pretok,
+                           base_tokenizer=btok,
+                           tdt_embedder=tdemb,
+                           tdt_generator=gen,
+                           args=args)
+    elif args.model_type == 'roberta':
+        tdt = RobertaTdtWrapper(base_model=bmod,
                                 pretokenizer=pretok,
                                 base_tokenizer=btok,
                                 tdt_embedder=tdemb,
                                 tdt_generator=gen,
                                 args=args)
-        elif args.model_type == 't5':
-            tdt = T5TdtWrapper(base_model=bmod,
-                               pretokenizer=pretok,
-                               base_tokenizer=btok,
-                               tdt_embedder=tdemb,
-                               tdt_generator=gen,
-                               args=args)
-        elif args.model_type == 'roberta':
-            tdt = RobertaTdtWrapper(base_model=bmod,
-                                    pretokenizer=pretok,
-                                    base_tokenizer=btok,
-                                    tdt_embedder=tdemb,
-                                    tdt_generator=gen,
-                                    args=args)
 
-        logger.info(f'Initialized Tokdetok model.')
+    logger.info(f'Initialized Tokdetok model.')
 
-        # train
-        train(args, train_dataset, tdt, tdcyc, dtcyc, char_vocab)
+    # train
+    train(args, train_dataset, tdt, tdcyc, dtcyc, char_vocab)
 
-        # save model
-        torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
-        tdt.save(args.output_dir)
-        logger.info(f"Saved model to {args.output_dir}")
+    # save model
+    torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
+    tdt.save(args.output_dir)
+    logger.info(f"Saved model to {args.output_dir}")
 
-        # evaluate
-        evaluate(args, tdt)
+    # evaluate
+    evaluate(args, tdt)
 
 
 if __name__ == "__main__":

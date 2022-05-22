@@ -25,7 +25,6 @@ import random
 from collections import Counter
 from typing import List, Tuple
 
-import tensorflow as tf
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -56,7 +55,7 @@ class TextDataset(Dataset):
 
         self.device = None
         self.tok = tokenizer
-        assert not tf.io.gfile.isdir(file_path)
+        # assert not tf.io.gfile.isdir(file_path)
 
         # [ro]bert[a] tokenizers have two special tokens for single sentence input
         block_size = block_size - 2
@@ -65,10 +64,10 @@ class TextDataset(Dataset):
         logger.info("Creating features from free text dataset file at %s", directory)
         self.examples = []
         if file_path.endswith('.gz'):
-            with tf.io.gfile.GFile(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
+            with open(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
                 text = zf.read().decode()
         else:
-            with tf.io.gfile.GFile(file_path, mode="r") as f:
+            with open(file_path, mode="r") as f:
                 text = f.read()
 
         self.chars = sorted(list(set(text))) + SPECIAL_CHAR_LIST
@@ -112,13 +111,13 @@ class LineByLineTextDataset(Dataset):
         """
         self.device = None
         self.tok = tokenizer
-        assert not tf.io.gfile.isdir(file_path)
+        # assert not tf.io.gfile.isdir(file_path)
         logger.info("Creating features from line-by-line dataset file at %s", file_path)
         logger.info(f"Pretokenizer type is {type(self.tok)}")
 
         lines = []
         if file_path.endswith('.gz'):
-            with tf.io.gfile.GFile(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
+            with open(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
                 for line in tqdm(zf, mininterval=120):
                     if random.random() > portion:
                         continue
@@ -130,7 +129,7 @@ class LineByLineTextDataset(Dataset):
                         if lds:
                             lines.append(lds)
         else:
-            with tf.io.gfile.GFile(file_path, mode="r") as f:
+            with open(file_path, mode="r") as f:
                 for line in tqdm(f, mininterval=120):
                     if random.random() > portion:
                         continue
@@ -184,12 +183,12 @@ def load_vocab(file_path: str, vocab_size: int = -1, lowercase: bool = False) ->
     reads = 0
     tot = 0
     logger.info(f'  Reading vocab from file {file_path} with lowercasing set to {lowercase}.')
-    assert not tf.io.gfile.isdir(file_path)
+    assert not open(file_path)
     if file_path.endswith('.gz'):
-        with tf.io.gfile.GFile(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
+        with open(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
             rawlines = [ln.decode() for ln in zf.readlines()]
     else:
-        with tf.io.gfile.GFile(file_path, mode="r") as f:
+        with open(file_path, mode="r") as f:
             rawlines = f.readlines()
     for line in rawlines:
         try:
