@@ -187,11 +187,11 @@ def main():
         # Barrier to make sure only the first process in distributed training downloads model & vocab & data
         torch.distributed.barrier()
 
-    temp_mod_dir = "/tmp/{}".format('shared_files')
-    logger.info(f'temp directory: {temp_mod_dir}')
+    #temp_mod_dir = "/tmp/{}".format('shared_files')
+    #logger.info(f'temp directory: {temp_mod_dir}')
 
     # load pre-trained models
-    btok, bmod, _ = load_model_files(args.model_type, args.model_dir, temp_mod_dir)
+    btok, bmod, _ = load_model_files(args.model_type, args.model_dir)  # , temp_mod_dir
     if args.model_type == 'gpt2':
         add_pad_token(btok)
     add_vector_token(btok)
@@ -215,14 +215,14 @@ def main():
                                      args.line_by_line, args.block_size, args.train_data_portion,
                                      args.shuffle_data)
         logger.info(f'Loaded {len(train_dataset)} training examples.')
-        write_dataset(train_dataset, os.path.join(temp_mod_dir, 'tr_ds.b'))
+        write_dataset(train_dataset, os.path.join(args.model_dir, 'tr_ds.b'))
 
         # End of data barrier
         if args.local_rank == 0:
             torch.distributed.barrier()
 
     if args.local_rank not in [-1, 0]:
-        train_dataset = load_cached_dataset(os.path.join(temp_mod_dir, 'tr_ds.b'))
+        train_dataset = load_cached_dataset(os.path.join(args.model_dir, 'tr_ds.b'))
 
     train_dataset.set_device(args.device)
 
@@ -305,7 +305,7 @@ def main():
     logger.info(f'Initialized Tokdetok model.')
 
     # train
-    train(args, train_dataset, tdt, tdcyc, dtcyc, char_vocab)
+    train(args, train_dataset, tdt, tdcyc, dtcyc, char_vocab=char_vocab)
 
     # save model
     torch.save(args, os.path.join(args.output_dir, "training_args.bin"))

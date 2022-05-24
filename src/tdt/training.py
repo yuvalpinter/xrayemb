@@ -21,7 +21,7 @@ from src.tdt.cycles import TdCycleTrainer, DtCycleTrainer
 from src.tdt.evaluation import evaluate
 from src.tdt.gen import gen_rand, cycle_check, gen_from_masks
 from src.tdt.tokdetok import TdtWrapper
-from src.tdt.utils import rotate_checkpoints, set_seed
+from src.tdt.utils import PreTokenizer, rotate_checkpoints, set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,8 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
 
+    pretok = PreTokenizer(hashtml=args.hashtml)
+    
     btok = tdt_wrapper.btok
 
     clean_voc = char_vocab[:-len(SPECIAL_CHAR_LIST)]  # for eyeballing generation sequences
@@ -263,7 +265,7 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
                     if (
                             args.local_rank == -1 and args.evaluate_during_training
                     ):  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(args, tdt_wrapper)
+                        results = evaluate(args, tdt_wrapper, pretok)
                         for key, value in results.items():
                             # noinspection PyUnboundLocalVariable
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
@@ -306,10 +308,15 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
 
             if args.train_cycle_dep and (step + 1) % args.cycle_freq == 0:
                 tdt_wrapper.train()
-                with tdt_wrapper.no_sync():
+                if args.local_rank == -1:
                     tdloss = td_cycle(args, tdt_wrapper, genloss, cycle_optimizer, cycle_scheduler)
                     dtloss = dt_cycle(args, tdt_wrapper, distloss, cycle_optimizer, cycle_scheduler)
                     logger.info(f'Completed cycle loops with {tdloss:.3f} T-D loss and {dtloss:.3f} D-T loss.')
+                else:
+                    with tdt_wrapper.no_sync():
+                        tdloss = td_cycle(args, tdt_wrapper, genloss, cycle_optimizer, cycle_scheduler)
+                        dtloss = dt_cycle(args, tdt_wrapper, distloss, cycle_optimizer, cycle_scheduler)
+                        logger.info(f'Completed no_sync cycle loops with {tdloss:.3f} T-D loss and {dtloss:.3f} D-T loss.')
 
             if 0 < args.max_steps < global_step:
                 epoch_iterator.close()

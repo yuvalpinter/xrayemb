@@ -14,7 +14,7 @@ from src.tdt.tokdetok import TdtWrapper
 logger = logging.getLogger(__name__)
 
 
-def evaluate(args, model_wrapper: TdtWrapper,
+def evaluate(args, model_wrapper: TdtWrapper, pretok,
              distloss: Module = torch.nn.MSELoss(),
              genloss: Module = torch.nn.CrossEntropyLoss(),
              prefix="") -> Dict:
@@ -31,7 +31,7 @@ def evaluate(args, model_wrapper: TdtWrapper,
     eval_output_dir = args.output_dir
 
     btok = model_wrapper.btok
-    eval_dataset = load_dataset(args.eval_data_file, model_wrapper.pretok, btok,
+    eval_dataset = load_dataset(args.eval_data_file, pretok, btok,
                                 args.line_by_line, args.block_size, portion=1.0, shuffle=False)
 
     if args.local_rank in [-1, 0]:

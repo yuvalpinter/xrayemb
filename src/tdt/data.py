@@ -183,7 +183,7 @@ def load_vocab(file_path: str, vocab_size: int = -1, lowercase: bool = False) ->
     reads = 0
     tot = 0
     logger.info(f'  Reading vocab from file {file_path} with lowercasing set to {lowercase}.')
-    assert not open(file_path)
+    #assert not open(file_path)
     if file_path.endswith('.gz'):
         with open(file_path, mode="rb") as f, gzip.GzipFile(fileobj=f) as zf:
             rawlines = [ln.decode() for ln in zf.readlines()]

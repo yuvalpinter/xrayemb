@@ -39,7 +39,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--model-dir ${MODEL_DIR}\
 										--train-data-file ${DATA_DIR}/tweets-en-2016.text.gz\
 										--eval-data-file ${DATA_DIR}/wikitext-2/wiki.test.tokens\
-										--vocab-file ${DATA_DIR}/vocab\
+										--vocab-file ${DATA_DIR}/vocab.test\
 										--output-dir ${TDT_MODEL_DIR}/${SLURM_JOBID}\
 										--logdir ${LOG_DIR}/${SLURM_JOBID}\
 										--block-size 512\
