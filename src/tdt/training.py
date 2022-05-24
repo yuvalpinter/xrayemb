@@ -7,7 +7,7 @@ import random
 import time
 from typing import Tuple, List
 
-import tensorflow as tf
+#import tensorflow as tf
 import torch
 from torch.nn import Module
 from torch.nn.utils.rnn import pad_sequence
@@ -45,7 +45,7 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
     :return: number of steps performed, mean training loss
     """
     if args.local_rank in [-1, 0]:
-        tf.io.gfile.makedirs(args.logdir)
+        os.makedirs(args.logdir)
         tb_writer = SummaryWriter(log_dir=args.logdir)
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)

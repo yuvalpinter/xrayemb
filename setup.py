@@ -8,9 +8,9 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        "transformers==2.8.0",
-        "numpy==1.16.4",
-        "torch==1.8.0",
+        "transformers==4.19.2",
+        "numpy==1.21.6",
+        "torch==1.10.1",
         "sentencepiece==0.1.91",
         "tensorboard==1.15",
         "scikit-learn",

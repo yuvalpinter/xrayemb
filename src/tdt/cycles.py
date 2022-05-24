@@ -5,7 +5,7 @@ import torch
 from tqdm import trange
 
 from src.tdt.tokdetok import TdtWrapper
-from src.tdt.training import logger
+from src.tdt.aux_classes import logger
 
 
 class CycleTrainer:

@@ -17,7 +17,7 @@
 #SBATCH --cpus-per-task=8				### number of CPU cores, allocating more than 10G requires IT team's permission
 
 ##SBATCH --tmp=10G
-SLURM_JOB_NODELIST=cs-3090-02
+##SLURM_JOB_NODELIST=cs-3090-02
 
 ### Print some data to output file ###
 echo `date`
