@@ -8,8 +8,9 @@ import time
 from typing import Tuple, List
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, DataParallel
 from torch.nn.utils.rnn import pad_sequence
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import AdamW
 from torch.utils.data import RandomSampler, DataLoader, DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
@@ -112,12 +113,12 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
 
     # Multi-gpu training (should be after apex fp16 initialization)
     if args.n_gpu > 1:
-        tdt_wrapper = torch.nn.DataParallel(tdt_wrapper)
+        tdt_wrapper = DataParallel(tdt_wrapper)
 
     # Distributed training (should be after apex fp16 initialization)
     if args.local_rank != -1:
         # noinspection PyArgumentList
-        tdt_wrapper = torch.nn.parallel.DistributedDataParallel(
+        tdt_wrapper = DistributedDataParallel(
             tdt_wrapper, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True
         )
 
