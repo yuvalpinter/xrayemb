@@ -6,7 +6,7 @@
 ################################################################################################
 
 #SBATCH --partition rtx2080				### specify partition name where to run a job. main: all nodes; gtx1080: 1080 gpu card nodes; rtx2080: 2080 nodes; teslap100: p100 nodes; titanrtx: titan nodes
-#SBATCH --time 0-2:30:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
+#SBATCH --time 2-0:00:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
 #SBATCH --job-name xrayemb-rob		### name of the job
 #SBATCH --output logs/xre-rob-2pt-%J.out	### output log for running job - %J for job number
 #SBATCH --gpus=4							    ### number of GPUs, allocating more than 1 requires IT team's permission
