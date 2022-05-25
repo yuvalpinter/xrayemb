@@ -313,7 +313,7 @@ def main():
     logger.info(f"Saved model to {args.output_dir}")
 
     # evaluate
-    evaluate(args, tdt)
+    evaluate(args, tdt, pretok)
 
 
 if __name__ == "__main__":

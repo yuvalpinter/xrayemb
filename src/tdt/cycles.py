@@ -88,4 +88,4 @@ class DtCycleTrainer(CycleTrainer):
         self.vec_dim = args.word_emb_dim
 
     def sample_batch(self, batch_size):
-        return torch.randn(batch_size, self.vec_dim) / np.sqrt(self.vec_dim)
+        return (torch.randn(batch_size, self.vec_dim) / np.sqrt(self.vec_dim)).to(self.device)
