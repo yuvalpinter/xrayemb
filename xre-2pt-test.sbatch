@@ -71,7 +71,8 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--conv-hidden-size 256\
 										--gen-lstm-hidden-size 256\
 										--gen-num-lstm-layers 1\
-										--spaces-end
+										--spaces-end\
+										--report
 
 										# --two-conv-proj
 										# --checkpoint \
