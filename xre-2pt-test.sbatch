@@ -35,7 +35,6 @@ source activate yuval				### activate a conda environment, replace my_env with y
 
 python -m src.tdt.run_tokdetok --seed 496351\
                     --n-gpu 1\
-                    --fp16\
 										--model-type roberta\
 										--model-dir ${MODEL_DIR}\
 										--train-data-file ${DATA_DIR}/tweets-sample-25k.text.gz\
@@ -75,6 +74,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--spaces-end\
 										--report
 
+                    # --fp16\
 										# --two-conv-proj
 										# --checkpoint \
 										# --lowercase-vocab\
