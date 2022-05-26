@@ -34,7 +34,7 @@ module load anaconda				### load anaconda module (must be present when working w
 source activate yuval				### activate a conda environment, replace my_env with your conda environment
 
 python -m src.tdt.run_tokdetok --seed 496351\
-                                        --n-gpu 4\
+                    --n-gpu 4\
                     --fp16\
 										--model-type roberta\
 										--model-dir ${MODEL_DIR}\
