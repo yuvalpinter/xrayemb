@@ -26,6 +26,9 @@ from src.tdt.utils import PreTokenizer, rotate_checkpoints, set_seed
 
 logger = logging.getLogger(__name__)
 
+DEMO_SENT = 'these pretzels are making me [MASK].'
+DEMO_IDS = [6]
+
 
 def train(args, train_dataset, tdt_wrapper: TdtWrapper,
           td_cycle: TdCycleTrainer, dt_cycle: DtCycleTrainer,
@@ -248,7 +251,7 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
                                 actual_tdt = tdt_wrapper
 
                             rand_gen = '\t'.join(gen_rand(actual_tdt, char_vocab, args))
-                            mask_gen = '\t'.join(gen_from_masks(actual_tdt, char_vocab))
+                            mask_gen = '\t'.join(gen_from_masks(actual_tdt, char_vocab, DEMO_SENT, DEMO_IDS))
                             randseq = ''.join([random.choice(clean_voc) for _ in range(15)])
                             cyclic, manual = cycle_check(actual_tdt, char_vocab, seq=randseq)
 
