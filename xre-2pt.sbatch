@@ -35,6 +35,7 @@ source activate yuval				### activate a conda environment, replace my_env with y
 
 python -m src.tdt.run_tokdetok --seed 496351\
                                         --n-gpu 4\
+                    --fp16\
 										--model-type roberta\
 										--model-dir ${MODEL_DIR}\
 										--train-data-file ${DATA_DIR}/tweets-en-2016.text.gz\
@@ -42,7 +43,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--vocab-file ${DATA_DIR}/vocab.test\
 										--output-dir ${TDT_MODEL_DIR}/${SLURM_JOBID}\
 										--logdir ${LOG_DIR}/${SLURM_JOBID}\
-										--block-size 2048\
+										--block-size 1024\
 										--mlm-probability 0.15\
 										--vocab-size 50000\
 										--train-data-portion 0.125\
@@ -51,7 +52,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--lrn-tdt\
 										--lrn-prob 0.1\
 										--evaluate-during-training\
-										--save-steps 5000\
+										--save-steps 25000\
 										--save-total-limit 4\
 										--learning-rate 2e-5\
 										--num-train-epochs 1.0\
@@ -71,7 +72,8 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--conv-hidden-size 256\
 										--gen-lstm-hidden-size 256\
 										--gen-num-lstm-layers 1\
-										--spaces-end
+										--spaces-end\
+										--report
 
 										# --two-conv-proj
 										# --checkpoint \

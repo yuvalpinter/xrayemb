@@ -52,7 +52,7 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
 
     pretok = PreTokenizer(hashtml=args.hashtml)
-    
+
     btok = tdt_wrapper.btok
 
     clean_voc = char_vocab[:-len(SPECIAL_CHAR_LIST)]  # for eyeballing generation sequences
@@ -317,7 +317,8 @@ def train(args, train_dataset, tdt_wrapper: TdtWrapper,
                     with tdt_wrapper.no_sync():
                         tdloss = td_cycle(args, tdt_wrapper, genloss, cycle_optimizer, cycle_scheduler)
                         dtloss = dt_cycle(args, tdt_wrapper, distloss, cycle_optimizer, cycle_scheduler)
-                        logger.info(f'Completed no_sync cycle loops with {tdloss:.3f} T-D loss and {dtloss:.3f} D-T loss.')
+                        logger.info(
+                            f'Completed no_sync cycle loops with {tdloss:.3f} T-D loss and {dtloss:.3f} D-T loss.')
 
             if 0 < args.max_steps < global_step:
                 epoch_iterator.close()
