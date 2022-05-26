@@ -30,6 +30,8 @@ MODEL_DIR=/home/pintery/git/xrayemb/models/roberta
 TDT_MODEL_DIR=/home/pintery/git/xrayemb/models
 LOG_DIR=/home/pintery/git/xrayemb/logs
 
+export CUDA_LAUNCH_BLOCKING=1
+
 module load anaconda				### load anaconda module (must be present when working with conda environments)
 source activate yuval				### activate a conda environment, replace my_env with your conda environment
 
