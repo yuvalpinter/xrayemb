@@ -29,6 +29,7 @@ DATA_DIR=/home/pintery/git/xrayemb/corpus
 MODEL_DIR=/home/pintery/git/xrayemb/models/roberta
 TDT_MODEL_DIR=/home/pintery/git/xrayemb/models
 LOG_DIR=/home/pintery/git/xrayemb/logs
+export RANK=4
 
 module load anaconda				### load anaconda module (must be present when working with conda environments)
 source activate yuval				### activate a conda environment, replace my_env with your conda environment
