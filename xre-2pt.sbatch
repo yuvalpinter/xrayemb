@@ -9,7 +9,7 @@
 #SBATCH --time 2-0:00:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
 #SBATCH --job-name xrayemb-rob		### name of the job
 #SBATCH --output logs/xre-rob-2pt-%J.out	### output log for running job - %J for job number
-#SBATCH --gpus=4							    ### number of GPUs, allocating more than 1 requires IT team's permission
+#SBATCH --gpus=4						    ### number of GPUs, allocating more than 1 requires IT team's permission
 
 #SBATCH --mail-user=uvp@cs.bgu.ac.il	        ### user's email for sending job status messages
 #SBATCH --mail-type=END,FAIL					### conditions for sending the email. ALL,BEGIN,END,FAIL, REQUEU, NONE
