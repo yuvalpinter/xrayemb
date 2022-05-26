@@ -236,7 +236,7 @@ def main():
     params_file = os.path.join(args.output_dir, "params.json")
     logger.info(f'saving arguments to {params_file}')
     with open(params_file, "w") as writer:
-        for k, v in vars(args):
+        for k, v in vars(args).items():
             writer.write(f'{k}:\t{v}\n')
 
     # load vocab, init cycle trainers
