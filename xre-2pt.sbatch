@@ -9,7 +9,7 @@
 #SBATCH --time 2-0:00:00					### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
 #SBATCH --job-name xrayemb-rob		### name of the job
 #SBATCH --output logs/xre-rob-2pt-%J.out	### output log for running job - %J for job number
-#SBATCH --gpus=4						    ### number of GPUs, allocating more than 1 requires IT team's permission
+#SBATCH --gpus=1						    ### number of GPUs, allocating more than 1 requires IT team's permission
 
 #SBATCH --mail-user=uvp@cs.bgu.ac.il	        ### user's email for sending job status messages
 #SBATCH --mail-type=END,FAIL					### conditions for sending the email. ALL,BEGIN,END,FAIL, REQUEU, NONE
@@ -29,13 +29,14 @@ DATA_DIR=/home/pintery/git/xrayemb/corpus
 MODEL_DIR=/home/pintery/git/xrayemb/models/roberta
 TDT_MODEL_DIR=/home/pintery/git/xrayemb/models
 LOG_DIR=/home/pintery/git/xrayemb/logs
-export RANK=4
+#export RANK=4
+#export WORLD_SIZE=4
 
 module load anaconda				### load anaconda module (must be present when working with conda environments)
 source activate yuval				### activate a conda environment, replace my_env with your conda environment
 
 python -m src.tdt.run_tokdetok --seed 496351\
-                    --n-gpu 4\
+                    --n-gpu 1\
 										--model-type roberta\
 										--model-dir ${MODEL_DIR}\
 										--train-data-file ${DATA_DIR}/tweets-en-2016.text.gz\
@@ -46,7 +47,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--block-size 1024\
 										--mlm-probability 0.15\
 										--vocab-size 50000\
-										--train-data-portion 0.125\
+										--train-data-portion 0.05\
 										--line-by-line\
 										--shuffle-data\
 										--lrn-tdt\
