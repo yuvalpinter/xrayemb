@@ -233,7 +233,7 @@ def main():
         outf.write(''.join(char_vocab[:-len(SPECIAL_CHAR_LIST)]))
 
     # save params
-    params_file = os.path.join(args.output_dir, "params.json")
+    params_file = os.path.join(args.output_dir, "params.tsv")
     logger.info(f'saving arguments to {params_file}')
     with open(params_file, "w") as writer:
         for k, v in vars(args).items():
