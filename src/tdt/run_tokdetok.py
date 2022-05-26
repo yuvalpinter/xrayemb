@@ -234,6 +234,7 @@ def main():
         outf.write(''.join(char_vocab[:-len(SPECIAL_CHAR_LIST)]))
 
     # save params
+    logger.info(f'saving arguments:\n{vars(args)}')
     params_file = os.path.join(args.output_dir, "params.json")
     with open(params_file, "w") as writer:
         json.dump(vars(args), writer, indent=4)

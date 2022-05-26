@@ -37,7 +37,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
                                         --n-gpu 1\
 										--model-type roberta\
 										--model-dir ${MODEL_DIR}\
-										--train-data-file ${DATA_DIR}/tweets-en-2016.text.gz\
+										--train-data-file ${DATA_DIR}/tweets-sample-25k.text.gz\
 										--eval-data-file ${DATA_DIR}/wikitext-2/wiki.test.tokens\
 										--vocab-file ${DATA_DIR}/vocab.test\
 										--output-dir ${TDT_MODEL_DIR}/${SLURM_JOBID}\
@@ -45,7 +45,7 @@ python -m src.tdt.run_tokdetok --seed 496351\
 										--block-size 512\
 										--mlm-probability 0.15\
 										--vocab-size 25000\
-										--train-data-portion 0.0001\
+										--train-data-portion 0.1\
 										--line-by-line\
 										--shuffle-data\
 										--lrn-tdt\
