@@ -3,6 +3,7 @@ Run a model augmenting a large language model (LLM) with a Tokdetok apparatus (T
 See argparse help for individual parameter usage
 """
 import argparse
+import json
 import logging
 import os
 
@@ -231,6 +232,11 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     with open(os.path.join(args.output_dir, 'chars.txt'), mode='w') as outf:
         outf.write(''.join(char_vocab[:-len(SPECIAL_CHAR_LIST)]))
+
+    # save params
+    params_file = os.path.join(args.output_dir, "params.json")
+    with open(params_file, "w") as writer:
+        json.dump(vars(args), writer, indent=4)
 
     # load vocab, init cycle trainers
     if args.lrn_tdt:

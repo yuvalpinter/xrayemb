@@ -22,7 +22,7 @@ from src.tdt.consts import PAD_CHAR, MASK_TOKEN_KEY
 from src.tdt.embedding import TdtEmbedder
 from src.tdt.generation import TdtGenerator
 from src.tdt.io_utils import load_model_files, load_tdt_periphery
-#from src.tdt.nlp_utils import NlpTokenizer
+# from src.tdt.nlp_utils import NlpTokenizer
 from src.tdt.utils import add_vector_token, add_pad_token
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def load_wrapper(model_type, base_dir, tdt_dir, vec_type, checkpoint=None, devic
     :param hashtml: will the text encountered have unescaped HTML
     :param vec_type: type of vectorizer (lstm, conv, transformer)
     """
-    #pret = NlpTokenizer(hashtml=hashtml)
+    # pret = NlpTokenizer(hashtml=hashtml)
     pret = None
     btok, bmod, _ = load_model_files(model_type, base_dir)
 
@@ -135,7 +135,7 @@ class TdtWrapper(nn.Module):
         self.mtype = args.model_type
 
         self.bmodel = base_model
-        #self.pretok = pretokenizer
+        # self.pretok = pretokenizer
         self.btok = base_tokenizer
         self.tdtemb = tdt_embedder
         self.tdtgen = tdt_generator
@@ -175,14 +175,14 @@ class TdtWrapper(nn.Module):
                 other_inp=None, action='mlm', get_inputs=False, get_embs=False, get_joins=False, **kwargs):
         """
         Accepts an encoded batch, returns an MLM output as well as loss-ready vectorizer and generator batches.
-        :param get_joins: also return mapping from original index location to joined tokens indicators
-        :param get_embs: also return embeddings input into the base LM (use for assertions)
-        :param get_inputs: also return input indices, e.g. for alignment check
         :param in_ids: tokenizer-encoded batch (input_ids member output from batch_encode_plus())
         :param mask: should masked objective (MLM) be pursued (default: False)
         :param generate_all: should all words be generated from detokenizer (default: False, useful for pre-training)
         :param other_inp: ugly way of passing cycle dependency inputs without breaking multi-gpu trainability
         :param action: ugly way of passing whether cycle loop is detok->tok ("dt_cycle") or tok->detok ("td_cycle")
+        :param get_inputs: also return input indices, e.g. for alignment check
+        :param get_embs: also return embeddings input into the base LM (use for assertions)
+        :param get_joins: also return mapping from original index location to joined tokens indicators
         :return: lm_out: final-layer vectors corresponding to all tokens in retokenized input
                  vec_lrn_batch: batch for tokenizer training (tuple of the form (predictions, target vectors))
                  generated: batch for detokenizer loss (tuple of the form (predictions, target indices))
@@ -201,7 +201,7 @@ class TdtWrapper(nn.Module):
 
         in_seqlen = in_ids.shape[1]
         if self.tdtemb is not None:
-            inp_ids, inp_embs, mask_labels, attn_mask, vec_lrn_batch, orig_words, joins =\
+            inp_ids, inp_embs, mask_labels, attn_mask, vec_lrn_batch, orig_words, joins = \
                 self.tdtemb(in_ids, mask=mask, get_infer_map=True)
             out_seqlen = inp_embs.shape[1]
 
@@ -287,11 +287,11 @@ class TdtWrapper(nn.Module):
 
         ret = (lm_out, vec_lrn_batch, generated)
         if get_embs:
-            ret += (inp_embs, )
+            ret += (inp_embs,)
         if get_inputs:
-            ret += (inp_ids, )
+            ret += (inp_ids,)
         if get_joins:
-            ret += (joins, )
+            ret += (joins,)
         return ret
 
     def run_base(self, input_ids=None, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
